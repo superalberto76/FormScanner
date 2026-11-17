@@ -1,0 +1,74 @@
+{
+  "format": 2,
+  "description": "Truth sheet of the golden set. Every case starts from the expectations of the synthetic scenario F01 with its own respondent ID; 'objects' lists only the objects the case's filling instructions change. Written by hand: an observation never becomes an expectation by itself.",
+  "project": "COLL-MULTI",
+  "variant": "A",
+  "base": "F01",
+  "fingerprint": "93faa3713b98b6f69726e5511ac5cdd866c481402cfd757c4e7c0aa30ef63cd7",
+  "cases": {
+    "F01": {
+      "file": "F01.pdf",
+      "scan": {"scanner": "Brother MFC-3770CDW", "source": "ADF", "date": "2026-11-07"},
+      "respondent_id": "100001",
+      "score": {"points": 28, "max": 28},
+      "objects": {}
+    },
+    "F07": {
+      "file": "F07.pdf",
+      "scan": {"scanner": "Brother MFC-3770CDW", "source": "ADF", "date": "2026-11-08"},
+      "respondent_id": "100007",
+      "score": {"points": 24, "max": 28},
+      "objects": {
+        "Q01": {"category": "known_limit", "note": "B in light HB pencil; at the first run read empty, in review (INVALID_ANSWER)"},
+        "Q02": {"category": "known_limit", "note": "C with half the bubble filled; at the first run read C, in review (LOW_CONFIDENCE, 0.615)"},
+        "Q03": {"category": "known_limit", "note": "A with a thin cross; at the first run read A, in review (LOW_CONFIDENCE, 0.564)"},
+        "Q04": {"category": "known_limit", "note": "D with a circle around the bubble; at the first run read empty, in review (INVALID_ANSWER)"}
+      }
+    },
+    "F08": {
+      "file": "F08.pdf",
+      "scan": {"scanner": "Brother MFC-3770CDW", "source": "ADF", "date": "2026-11-08"},
+      "respondent_id": "100008",
+      "score": {"points": 27, "max": 28},
+      "objects": {
+        "Q01": {"category": "requirement", "reading": {"letters": [], "validity": "NO_ANSWER"}, "review": ["INVALID_ANSWER"], "note": "B filled in and rubbed out with an eraser, no other answer: the question is blank"},
+        "Q02": {"category": "requirement", "reading": {"letters": ["C"], "validity": "VALID"}, "review": [], "note": "A filled in and covered with correction fluid, then C filled in"}
+      }
+    },
+    "F12": {
+      "file": "F12.pdf",
+      "scan": {"scanner": "Brother MFC-3770CDW", "source": "ADF", "date": "2026-11-08"},
+      "respondent_id": "100012",
+      "score": {"points": 28, "max": 28},
+      "objects": {
+        "NOME": {"category": "known_limit", "note": "legible block capitals: the OCR text is not compared"},
+        "APERTA": {"category": "known_limit", "note": "legible block capitals: the OCR text is not compared"}
+      }
+    },
+    "F13": {
+      "file": "F13.pdf",
+      "scan": {"scanner": "Brother MFC-3770CDW", "source": "ADF", "date": "2026-11-08"},
+      "respondent_id": "100013",
+      "score": {"points": 28, "max": 28},
+      "objects": {
+        "NOME": {"category": "known_limit", "note": "fast cursive: the OCR text is not compared; at the first run an empty suggestion"},
+        "APERTA": {"category": "known_limit", "note": "fast cursive: the OCR text is not compared"}
+      }
+    },
+    "F21a": {
+      "file": "F21a.pdf",
+      "print": {"scale": "Fit to page (~95%)"},
+      "scan": {"scanner": "Brother MFC-3770CDW", "source": "ADF", "date": "2026-11-07"},
+      "respondent_id": "100021",
+      "score": {"points": 28, "max": 28},
+      "objects": {}
+    },
+    "F21b": {
+      "file": "F21b.pdf",
+      "scan": {"scanner": "Brother MFC-3770CDW", "source": "flatbed", "date": "2026-11-07", "rotation": "by hand, measured 2.5–3.2°"},
+      "respondent_id": "100022",
+      "score": {"points": 28, "max": 28},
+      "objects": {}
+    }
+  }
+}

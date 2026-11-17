@@ -1,0 +1,1 @@
+Alembic migrations. env.py takes the database URL from DATABASE_URL; revisions live in versions/.

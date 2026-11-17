@@ -1,0 +1,61 @@
+name: Bug report
+description: Something in FormScanner does not work as expected.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. Please search the existing issues first.
+        **Security vulnerabilities must not be reported here:** see the security policy.
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      description: The FormScanner release or the commit you are running.
+      placeholder: e.g. v0.1.0 or 1a2b3c4
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: What you did, step by step. Attach a form or a scan only if it contains no personal data.
+      placeholder: |
+        1. Open ...
+        2. Upload ...
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What you expected to happen.
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: What happened instead, with any error message shown in the browser.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: How FormScanner is installed and used.
+      placeholder: |
+        - Installation: Docker Compose / development setup
+        - Host OS and Docker version:
+        - Browser and version:
+    validations:
+      required: false
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Relevant output of `docker compose logs backend` or of the browser console. Remove passwords, tokens and personal data.
+      render: text
+    validations:
+      required: false

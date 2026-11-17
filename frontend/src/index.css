@@ -1,0 +1,1882 @@
+/* SPDX-FileCopyrightText: 2026 Alberto Borsetta */
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --bg: #f5f7fa;
+  --surface: #ffffff;
+  --border: #e2e8f0;
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --danger: #dc2626;
+  --success: #16a34a;
+  --text: #111827;
+  --text-muted: #6b7280;
+  --radius: 6px;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+
+  /* ── Semantic colour tokens ────────────────────────────────────────────────
+     Every meaningful colour routes through one of these (the unused .mode-chip
+     palette below stays literal). The value below is the
+     light theme; the dark override lives in :root[data-theme="dark"]. State
+     pairs (bg/border/text) serve banners and toasts.
+     `--paper-*` is the canvas "paper" and is DELIBERATELY not themed dark — it
+     stays white in both themes (printed sheets are white). */
+  --danger-bg: #fef2f2;   --danger-border: #fecaca;   --danger-text: #991b1b;
+  --success-bg: #ecfdf5;  --success-border: #a7f3d0;  --success-text: #065f46;
+  --warning-bg: #fef3c7;  --warning-border: #fde68a;  --warning-text: #92400e;
+  --info-bg: #eff6ff;     --info-border: #bfdbfe;     --info-text: #1e40af;
+  --hover-bg: #f1f5f9;        /* item hover (pages rail, tags) */
+  --row-hover-bg: #f8fafc;    /* table/list row hover */
+  --selected-bg: #eff6ff;     /* selected thumb/object */
+  --canvas-desk-bg: #eef2f7;  /* desk behind the paper in the viewer */
+  --paper-bg: #ffffff;        /* canvas paper — stays white in dark */
+  --paper-border: #cbd5e1;
+
+  /* ── Z-index scale ─────────────────────────────────────────────────────────
+     One coherent ladder so layers never fight by accident. The canvas is its
+     own stacking context (.nd-page-surface { isolation }), so --z-grid /
+     --z-handles / --z-snap-guide / --z-overlay-selected are *local* to the
+     paper and never escape above the modal. Everything from --z-header up is in
+     the root context: the modal backdrop sits above the whole workspace and the
+     toolbar popover, and toasts stay above the modal. */
+  --z-grid: 0;              /* 5px grid behind objects (local to canvas) */
+  --z-handles: 3;          /* resize handles on the selected overlay (local) */
+  --z-snap-guide: 4;       /* alignment guides during a drag (local) */
+  --z-alignment-marks: 9999; /* export alignment marks above objects (local) */
+  --z-overlay-selected: 10000; /* selected overlay above its siblings (local) */
+  --z-header: 10;          /* sticky app header (root) */
+  --z-toolbar-popover: 50; /* Snap dropdown / toolbar popovers (root) */
+  --z-modal-backdrop: 1000;/* workspace modals, above all canvas/toolbar (root) */
+  --z-toast: 2000;         /* toasts above modals so errors stay visible (root) */
+}
+
+/* ── Dark palette ──────────────────────────────────────────────────────────────
+   Activated by `data-theme="dark"` on <html> (set pre-paint by the boot script in
+   index.html and reconciled at runtime by ThemeController). Overrides ONLY the
+   colour tokens — the same tokens the rest of the stylesheet already consumes —
+   so no component rule needs a dark-specific variant. Slate-based to match the
+   bluish light palette. `--paper-bg`/`--paper-border` and the `--overlay-*`
+   annotation colours are intentionally left light: they live on the white canvas
+   paper, which stays white in dark. */
+:root[data-theme="dark"] {
+  --bg: #0f172a;
+  --surface: #1e293b;
+  --border: #334155;
+  --text: #e2e8f0;
+  --text-muted: #94a3b8;
+  --primary: #3b82f6;
+  --primary-hover: #60a5fa;
+  --danger: #f87171;
+  --success: #4ade80;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.4);
+
+  --danger-bg: rgba(248, 113, 113, 0.12);  --danger-border: rgba(248, 113, 113, 0.35);  --danger-text: #fca5a5;
+  --success-bg: rgba(74, 222, 128, 0.12);  --success-border: rgba(74, 222, 128, 0.35);  --success-text: #86efac;
+  --warning-bg: rgba(251, 191, 36, 0.12);  --warning-border: rgba(251, 191, 36, 0.35);  --warning-text: #fcd34d;
+  --info-bg: rgba(59, 130, 246, 0.14);     --info-border: rgba(59, 130, 246, 0.4);      --info-text: #93c5fd;
+
+  --hover-bg: rgba(148, 163, 184, 0.10);
+  --row-hover-bg: rgba(148, 163, 184, 0.06);
+  --selected-bg: rgba(59, 130, 246, 0.16);
+  --canvas-desk-bg: #0b1220;
+
+  /* paper stays light on purpose: */
+  --paper-bg: #ffffff;
+  --paper-border: #cbd5e1;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+/* ── Header ─────────────────────────────────────────────────── */
+.header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: var(--z-header);
+}
+.header-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  height: 52px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.header-brand {
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--primary);
+  text-decoration: none;
+}
+.header-spacer { flex: 1; }
+.header-user {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+/* ── User menu ───────────────────────────────────────────────── */
+.user-menu { position: relative; }
+
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  border-radius: 50%;
+  color: #fff;
+  font-weight: 600;
+  line-height: 1;
+  text-transform: uppercase;
+  user-select: none;
+  overflow: hidden;
+}
+.avatar-img { object-fit: cover; }
+
+.user-menu-trigger {
+  display: inline-flex;
+  align-items: center;
+  padding: 0;
+  border: none;
+  background: transparent;
+  border-radius: 50%;
+  cursor: pointer;
+  line-height: 0;
+}
+.user-menu-trigger:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.user-menu-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 232px;
+  padding: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  /* Sits above page content; the header's own stacking context keeps it on top. */
+  z-index: var(--z-toolbar-popover);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.user-menu-headerrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+}
+.user-menu-identity {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.user-menu-name {
+  font-weight: 600;
+  color: var(--text);
+  font-size: 0.875rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.user-menu-status {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.user-menu-divider {
+  height: 1px;
+  margin: 4px 0;
+  background: var(--border);
+}
+
+.user-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.875rem;
+  text-align: left;
+  cursor: pointer;
+}
+.user-menu-item:hover:not([aria-disabled="true"]),
+.user-menu-item:focus-visible {
+  background: var(--bg);
+  outline: none;
+}
+.user-menu-item[aria-disabled="true"] {
+  color: var(--text-muted);
+  cursor: default;
+}
+
+.user-menu-soon,
+.user-menu-tag {
+  padding: 2px 6px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.user-menu-danger { color: var(--danger); }
+.user-menu-danger:hover,
+.user-menu-danger:focus-visible {
+  background: var(--danger-bg);
+}
+
+/* ── Page wrapper ────────────────────────────────────────────── */
+.page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 28px 16px;
+}
+
+/* ── Card ────────────────────────────────────────────────────── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: var(--shadow);
+}
+
+/* ── Buttons ─────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 16px;
+  border-radius: var(--radius);
+  border: none;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.4;
+  transition: background 0.15s, opacity 0.15s;
+  white-space: nowrap;
+}
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.btn-primary {
+  background: var(--primary);
+  color: #fff;
+}
+.btn-primary:hover:not(:disabled) {
+  background: var(--primary-hover);
+}
+.btn-secondary {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+.btn-secondary:hover:not(:disabled) {
+  background: var(--bg);
+}
+.btn-sm {
+  padding: 4px 10px;
+  font-size: 0.8rem;
+}
+
+/* ── Forms ───────────────────────────────────────────────────── */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.form-group label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text);
+}
+.form-group input,
+.form-group select,
+.form-group textarea {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+  color: var(--text);
+  background: var(--surface);
+  width: 100%;
+}
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: 2px solid var(--primary);
+  outline-offset: -1px;
+}
+
+/* ── Feedback ────────────────────────────────────────────────── */
+.error-msg {
+  color: var(--danger);
+  font-size: 0.85rem;
+  padding: 8px 12px;
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-border);
+  border-radius: var(--radius);
+}
+.info-msg {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+/* ── Spacing helpers ─────────────────────────────────────────── */
+.stack { display: flex; flex-direction: column; }
+.stack-4 { gap: 4px; }
+.stack-8 { gap: 8px; }
+.stack-12 { gap: 12px; }
+.stack-16 { gap: 16px; }
+.stack-24 { gap: 24px; }
+.row { display: flex; align-items: center; }
+.row-4 { gap: 4px; }
+.row-8 { gap: 8px; }
+.row-12 { gap: 12px; }
+.row-16 { gap: 16px; }
+.mt-8 { margin-top: 8px; }
+.mt-16 { margin-top: 16px; }
+.mt-24 { margin-top: 24px; }
+.mb-16 { margin-bottom: 16px; }
+
+/* ── Login page ──────────────────────────────────────────────── */
+.login-wrap {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.login-card {
+  width: 100%;
+  max-width: 380px;
+}
+.login-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--primary);
+  margin-bottom: 24px;
+}
+
+/* ── Page title ──────────────────────────────────────────────── */
+h1 { font-size: 1.25rem; font-weight: 700; }
+h2 { font-size: 1.05rem; font-weight: 600; }
+h3 { font-size: 0.95rem; font-weight: 600; }
+
+/* ── Status badge ────────────────────────────────────────────── */
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+.badge-draft    { background: var(--warning-bg); color: var(--warning-text); }
+.badge-published { background: var(--success-bg); color: var(--success-text); }
+.badge-archived { background: var(--bg); color: var(--text-muted); }
+
+/* ── Template list ───────────────────────────────────────────── */
+.template-list { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.template-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.template-row:last-child { border-bottom: none; }
+.template-row:hover { background: var(--row-hover-bg); }
+.template-row a {
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 500;
+}
+.template-row a:hover { text-decoration: underline; }
+.template-row-meta {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+/* ── Page thumbnails ─────────────────────────────────────────── */
+.pages-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.page-thumb {
+  width: 64px;
+  height: 86px;
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--surface);
+  transition: border-color 0.12s, color 0.12s;
+  user-select: none;
+}
+.page-thumb:hover { border-color: var(--primary); color: var(--primary); }
+.page-thumb.selected { border-color: var(--primary); color: var(--primary); background: var(--selected-bg); }
+
+/* ── Page viewer ─────────────────────────────────────────────── */
+.page-viewer img {
+  max-width: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  display: block;
+}
+.page-meta-line {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+
+/* ── Divider ─────────────────────────────────────────────────── */
+.divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 20px 0;
+}
+
+/* ── Detail grid ─────────────────────────────────────────────── */
+.detail-grid {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 6px 12px;
+  font-size: 0.875rem;
+}
+.detail-grid dt { color: var(--text-muted); font-weight: 500; }
+.detail-grid dd { color: var(--text); }
+
+/* ── Overlay colours (CSS vars for easy future theming) ─────── */
+:root {
+  --overlay-area-ok:   #16a34a;   /* green  — configured area */
+  --overlay-area-warn: #dc2626;   /* red    — unconfigured area */
+  --overlay-code:      #2563eb;   /* blue   — code region */
+  --overlay-mark:      #f59e0b;   /* amber  — answer mark dot */
+}
+
+/* ── Version lifecycle bar ───────────────────────────────────── */
+.version-bar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 14px 16px;
+}
+.version-bar-id { min-width: 0; }
+.version-bar-id strong { font-size: 0.95rem; }
+.version-bar-root { color: var(--primary); }
+.version-bar-sep { color: var(--text-muted); }
+.version-bar-num {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+  padding: 1px 8px;
+}
+.version-bar-uuid {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+  word-break: break-all;
+}
+
+/* ── Flash (success) banner ──────────────────────────────────── */
+.flash-success {
+  padding: 8px 12px;
+  background: var(--success-bg);
+  border: 1px solid var(--success-border);
+  border-radius: var(--radius);
+  color: var(--success-text);
+  font-size: 0.85rem;
+}
+
+/* ── Read-only banner ────────────────────────────────────────── */
+.readonly-banner {
+  padding: 10px 16px;
+  background: var(--warning-bg);
+  border: 1px solid var(--warning-border);
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+  color: var(--warning-text);
+}
+
+/* ── Workspace card (used instead of .card in the detail page) ── */
+.workspace-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+/* Toolbar: thumbnails + action buttons */
+.workspace-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  flex-wrap: wrap;
+}
+
+/* Three-column body: pages rail · viewer (flex) · panel (fixed width).
+   .workspace-body/-pages/-viewer/-panel are not used by any component. */
+.workspace-body {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  min-height: 400px;
+}
+
+.workspace-pages {
+  width: 84px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border);
+  padding: 12px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  overflow-y: auto;
+  max-height: 640px;
+  background: var(--bg);
+}
+.workspace-pages-title {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  font-weight: 600;
+  align-self: flex-start;
+}
+
+.workspace-viewer {
+  flex: 1;
+  min-width: 0;
+  padding: 16px;
+  overflow: auto;
+}
+
+.workspace-panel {
+  width: 300px;
+  flex-shrink: 0;
+  border-left: 1px solid var(--border);
+  align-self: stretch;
+  overflow-y: auto;
+  max-height: 720px;
+}
+
+/* ── Current-mode chip + mode toggle ─────────────────────────── */
+.mode-chip {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+}
+/* TODO(theme): mode-chip palette — not used by any component (no .mode-chip.*
+   usage in src/*.tsx). Left literal rather than tokenized; tokenize if the chip
+   is ever used. */
+.mode-chip.mode-view      { background: #f3f4f6; color: #374151; }
+.mode-chip.mode-edit_area { background: #dcfce7; color: #166534; border-color: #bbf7d0; }
+.mode-chip.mode-add_area  { background: #dbeafe; color: #1e40af; border-color: #bfdbfe; }
+.mode-chip.mode-add_code  { background: #e0e7ff; color: #3730a3; border-color: #c7d2fe; }
+.mode-chip.mode-marks     { background: #fef3c7; color: #92400e; border-color: #fde68a; }
+.mode-toggle {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+/* ── Viewer toolbar (zoom + layer toggles) ───────────────────── */
+.viewer-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.viewer-zoom-label {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  min-width: 42px;
+  text-align: center;
+}
+.viewer-scroll {
+  max-height: 70vh;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--canvas-desk-bg);
+}
+
+/* ── Matrix grid ─────────────────────────────────────────────── */
+.matrix-grid {
+  display: grid;
+  gap: 2px;
+  align-items: center;
+}
+.matrix-corner { width: auto; }
+.matrix-head, .matrix-rowlabel {
+  font-size: 9px;
+  color: var(--text-muted);
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 60px;
+}
+.matrix-rowlabel { text-align: right; padding-right: 4px; }
+.matrix-cell {
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--surface);
+  cursor: pointer;
+  padding: 0;
+  font-size: 9px;
+  color: var(--text-muted);
+  transition: background 0.1s;
+}
+.matrix-cell:disabled { cursor: default; }
+.matrix-cell.marked { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+/* ── Side panel ──────────────────────────────────────────────── */
+.side-panel {
+  padding: 16px;
+  height: 100%;
+}
+.side-panel-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 120px;
+}
+.side-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+/* ── Modal ───────────────────────────────────────────────────── */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: var(--z-modal-backdrop);
+}
+.modal-box {
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  padding: 24px;
+  width: 420px;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+}
+.modal-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.modal-header h2 {
+  flex: 1;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+/* ── PageViewer wrap ─────────────────────────────────────────── */
+.page-viewer-wrap img {
+  display: block;
+}
+.page-meta-line {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+
+/* ── Toasts ──────────────────────────────────────────────────── */
+.toast-stack {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: var(--z-toast);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: min(380px, calc(100vw - 32px));
+}
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.14);
+  font-size: 0.85rem;
+  border: 1px solid;
+  animation: toast-in 0.15s ease-out;
+}
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.toast-text { flex: 1; line-height: 1.35; }
+.toast-close {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.8rem;
+  color: inherit;
+  opacity: 0.7;
+  padding: 0;
+  line-height: 1;
+}
+.toast-close:hover { opacity: 1; }
+.toast-success { background: var(--success-bg); border-color: var(--success-border); color: var(--success-text); }
+.toast-error   { background: var(--danger-bg); border-color: var(--danger-border); color: var(--danger-text); }
+.toast-info    { background: var(--info-bg); border-color: var(--info-border); color: var(--info-text); }
+
+/* ════════════════════════════════════════════════════════════════════════
+   PROJECTS / VARIANTS / PAGE-OBJECT WORKSPACE.
+   Reuses existing tokens (--border, --radius, etc.) and the .badge palette.
+   ════════════════════════════════════════════════════════════════════════ */
+
+.nd-muted { color: var(--text-muted); }
+.nd-breadcrumb { font-size: 0.875rem; color: var(--text-muted); }
+.nd-breadcrumb a { color: var(--primary); text-decoration: none; }
+.nd-breadcrumb a:hover { text-decoration: underline; }
+
+/* Tables (projects, variants, objects) */
+.nd-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+.nd-table th, .nd-table td {
+  text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border);
+}
+.nd-table th {
+  font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--text-muted); font-weight: 600; background: var(--bg);
+}
+.nd-table tbody tr:last-child td { border-bottom: none; }
+.nd-table-compact th, .nd-table-compact td { padding: 6px 8px; }
+.nd-row { cursor: pointer; }
+.nd-row:hover { background: var(--row-hover-bg); }
+
+/* Raw inputs/selects outside .form-group (e.g. dynamic option/cell rows) */
+.nd-panel-section input,
+.nd-panel-section select,
+.nd-panel-section textarea {
+  padding: 6px 8px; border: 1px solid var(--border); border-radius: var(--radius);
+  font-size: 0.85rem; color: var(--text); background: var(--surface);
+}
+.nd-check { display: inline-flex; align-items: center; gap: 4px; font-size: 0.85rem; }
+.nd-check input { width: auto; }
+.nd-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.nd-options { margin: 4px 0 0; padding-left: 16px; font-size: 0.85rem; }
+
+/* Workspace 3-column layout (distinct from the .workspace-* rules above) */
+.nd-workspace-body { display: flex; align-items: stretch; min-height: 460px; }
+.nd-pages-rail {
+  width: 120px; flex-shrink: 0; border-right: 1px solid var(--border);
+  padding: 12px 10px; display: flex; flex-direction: column; gap: 6px;
+  background: var(--bg); overflow-y: auto; max-height: 720px;
+}
+.nd-page-item {
+  text-align: left; padding: 8px 10px; border: 1px solid var(--border);
+  border-radius: var(--radius); background: var(--surface); cursor: pointer;
+  font-size: 0.85rem; color: var(--text);
+}
+.nd-page-item:hover { background: var(--hover-bg); }
+.nd-page-item.is-active { border-color: var(--primary); color: var(--primary); font-weight: 600; }
+.nd-page-add { margin-top: 4px; justify-content: center; }
+
+.nd-workspace-center { flex: 1; min-width: 0; padding: 16px; overflow: auto; }
+.nd-viewer-placeholder {
+  margin-top: 16px; padding: 40px 16px; text-align: center; color: var(--text-muted);
+  border: 2px dashed var(--border); border-radius: var(--radius); font-size: 0.875rem;
+  line-height: 1.6;
+}
+.nd-workspace-panel {
+  width: 340px; flex-shrink: 0; border-left: 1px solid var(--border);
+  overflow-y: auto; max-height: 760px; background: var(--surface);
+}
+.nd-panel-section { padding: 16px; border-bottom: 1px solid var(--border); }
+.nd-panel-section:last-child { border-bottom: none; }
+
+/* ── Read-only page viewer + overlays ────────────────────────────────────── */
+.nd-viewer { display: flex; flex-direction: column; gap: 10px; }
+.nd-viewer-caption { font-size: 0.8rem; color: var(--text); }
+.nd-viewer-scroll {
+  background: var(--canvas-desk-bg); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 20px; display: flex; justify-content: center; overflow: auto; max-height: 70vh;
+}
+/* White "paper" surface; aspect-ratio + max-width are set inline from page dims. */
+.nd-page-surface {
+  position: relative; width: 100%; background: var(--paper-bg);
+  /* Let the inline `aspect-ratio` drive the height. `.nd-viewer-scroll` is a flex
+     row whose default `align-items: stretch` would otherwise stretch this child to
+     the line's cross-size — a definite height that defeats `aspect-ratio` (which
+     only sizes the cross axis when height is `auto`), squashing A4 to near-square.
+     Opt out of that stretch and pin height:auto. Width stays capped by the inline
+     maxWidth; tall pages scroll via `.nd-viewer-scroll { overflow:auto }`. */
+  height: auto; align-self: flex-start;
+  border: 1px solid var(--paper-border); box-shadow: var(--shadow);
+  /* Own stacking context so overlay z-indices (incl. the selected overlay's
+     --z-overlay-selected) stay local to the paper and can't paint over a modal
+     backdrop in the root context. */
+  isolation: isolate;
+}
+
+/* Absolutely-positioned read-only object overlays.
+   NOTE: no `overflow: hidden` here — it would clip the resize handles, which sit
+   at -5px outside the box. The faithful preview clips itself inside
+   its own `.nd-preview` layer instead. */
+.nd-overlay {
+  position: absolute; box-sizing: border-box; border: 1.5px solid; border-radius: 3px;
+  cursor: pointer; transition: box-shadow 0.1s ease;
+}
+.nd-overlay:hover { box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.25); }
+.nd-overlay.is-selected { border-width: 2.5px; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.35); }
+.nd-overlay-chip {
+  position: absolute; top: 0; left: 0; max-width: 100%;
+  font-size: 10px; line-height: 1.4; color: #fff; padding: 1px 5px;
+  border-bottom-right-radius: 3px; white-space: nowrap; overflow: hidden;
+  text-overflow: ellipsis; pointer-events: none;
+}
+
+/* Object list (right column) */
+.nd-object-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.nd-object-item {
+  display: flex; align-items: center; gap: 8px; padding: 7px 9px;
+  border: 1px solid var(--border); border-radius: var(--radius); cursor: pointer; font-size: 0.85rem;
+}
+.nd-object-item:hover { background: var(--row-hover-bg); }
+.nd-object-item.is-selected { border-color: var(--primary); background: var(--selected-bg); }
+.nd-object-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.nd-object-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nd-object-type { font-size: 0.7rem; }
+
+.nd-tag {
+  font-size: 0.65rem; padding: 1px 6px; border-radius: 999px;
+  background: var(--hover-bg); color: var(--text-muted); margin-left: 4px;
+}
+.nd-option-correct { color: var(--success); font-weight: 600; }
+.nd-id { font-size: 0.72rem; word-break: break-all; }
+
+/* ── ObjectDetailPanel copy buttons ──────────────────────────────────────── */
+.nd-copy-row { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.nd-copy-btn { padding: 1px 8px; font-size: 0.68rem; line-height: 1.6; }
+
+/* ── Visual editor ───────────────────────────────────────────────────────── */
+.nd-mode-toolbar {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 10px 16px; border-bottom: 1px solid var(--border); background: var(--bg);
+}
+.nd-mode-indicator { margin-left: auto; font-size: 0.8rem; color: var(--text-muted); }
+
+/* Compact toolbar controls ("Add object", "Sort objects", "Snap"), sized like
+   btn-sm. The two native <select>s and the Snap <button> share this class so the
+   trio stays visually uniform; the Snap-specific bits live in .nd-snap-trigger.
+   appearance:none drops the OS-specific native arrow so all three render the same
+   chevron (a right-aligned SVG), independent of browser/platform. */
+.nd-toolbar-select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding: 4px 28px 4px 10px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  font-family: inherit;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background-color: var(--surface);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5 6 7.5 9 4.5' fill='none' stroke='%236b7280' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 9px center;
+  color: var(--text);
+  cursor: pointer;
+}
+.nd-toolbar-select:hover:not(:disabled) { background-color: var(--bg); }
+.nd-toolbar-select:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Drawing cursor while a create tool is active */
+.nd-page-surface.is-adding { cursor: crosshair; }
+
+/* Editable overlays show a move cursor on the body */
+.nd-overlay.is-editable { cursor: move; }
+
+/* Locked overlay in edit mode: selectable (pointer), but not movable/resizable.
+   A small lock badge mirrors the 🔒 tag in the object list. */
+.nd-overlay.is-locked { cursor: pointer; }
+.nd-overlay-lock {
+  position: absolute; top: 2px; right: 3px; font-size: 10px; line-height: 1;
+  pointer-events: none; opacity: 0.85;
+}
+
+/* "Shown on all pages" badge — top-left so it never overlaps the
+   lock badge (top-right). Mirrors the 🔗 tag in the object list. */
+.nd-overlay-shared {
+  position: absolute; top: 2px; left: 3px; font-size: 10px; line-height: 1;
+  pointer-events: none; opacity: 0.85;
+}
+
+/* Ghost rectangle shown while drawing a new object */
+.nd-ghost {
+  position: absolute; box-sizing: border-box;
+  border: 1.5px dashed var(--primary); background: rgba(37, 99, 235, 0.08);
+  pointer-events: none;
+}
+
+/* Resize handles on the selected editable overlay */
+.nd-handle {
+  position: absolute; width: 10px; height: 10px; background: #fff;
+  border: 1.5px solid var(--primary); border-radius: 2px; z-index: var(--z-handles);
+}
+.nd-handle-nw { left: -5px; top: -5px; cursor: nwse-resize; }
+.nd-handle-ne { right: -5px; top: -5px; cursor: nesw-resize; }
+.nd-handle-sw { left: -5px; bottom: -5px; cursor: nesw-resize; }
+.nd-handle-se { right: -5px; bottom: -5px; cursor: nwse-resize; }
+
+/* Edit panel section titles */
+.nd-edit-title {
+  font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--text-muted); font-weight: 600; margin: 0 0 8px;
+}
+
+/* Helper text under an edit-panel control (e.g. the "show on all pages" toggle) */
+.nd-edit-hint { font-size: 0.72rem; margin: 0; }
+
+/* Create modal can get tall (question/matrix) — allow it to scroll */
+.nd-modal-scroll { width: 460px; max-width: 92vw; max-height: 86vh; overflow-y: auto; }
+
+/* ── Project members ─────────────────────────────────────────── */
+.mb-8 { margin-bottom: 8px; }
+
+/* Members modal rows: avatar + name + role badge + actions */
+.nd-member-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+}
+.nd-member-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nd-member-actions { display: inline-flex; gap: 6px; flex: none; }
+.nd-member-section-title {
+  font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--text-muted); font-weight: 600; margin: 0 0 6px;
+}
+.badge-role-owner       { background: var(--success-bg); color: var(--success-text); }
+.badge-role-collaborator { background: var(--bg); color: var(--text-muted); }
+
+/* Avatar stack on the project list: overlapping circles + "+N" chip. */
+.avatar-stack { display: inline-flex; align-items: center; cursor: pointer; }
+.avatar-stack .avatar { box-shadow: 0 0 0 2px var(--surface); }
+.avatar-stack .avatar + .avatar,
+.avatar-stack .avatar-stack-more { margin-left: -8px; }
+.avatar-stack-more {
+  display: inline-flex; align-items: center; justify-content: center;
+  height: 28px; min-width: 28px; padding: 0 6px;
+  border-radius: 9999px; background: var(--bg); color: var(--text-muted);
+  font-size: 0.72rem; font-weight: 600;
+  box-shadow: 0 0 0 2px var(--surface);
+}
+
+/* ── Project detail tabs (Variants / Scanning) ───────────────── */
+.nd-tabs {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+.nd-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  margin-bottom: -1px;              /* overlap the bar's border */
+  border: 1px solid transparent;
+  border-radius: var(--radius) var(--radius) 0 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-decoration: none;
+  background: none;
+}
+.nd-tab:hover:not(.is-disabled):not(.is-active) { color: var(--text); background: var(--hover-bg); }
+.nd-tab.is-active {
+  color: var(--primary);
+  background: var(--surface);
+  border-color: var(--border);
+  border-bottom-color: var(--surface);
+}
+/* Scanning while the project is not ACTIVE: rendered as a plain span, never a
+   link — the muted look must read as "not available", not "just unselected". */
+.nd-tab.is-disabled { opacity: 0.55; cursor: not-allowed; }
+
+/* ── Batch upload area (scanning ingestion) ──────────────────── */
+/* A <button>, not a <div>: click, focus ring and keyboard activation come for
+   free, and the drag handlers work on it just the same. */
+.nd-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  padding: 32px 16px;
+  border: 1.5px dashed var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.15s, background 0.15s;
+}
+.nd-dropzone:hover,
+.nd-dropzone.is-dragging {
+  border-color: var(--primary);
+  background: var(--selected-bg);
+}
+.nd-dropzone-glyph { font-size: 1.5rem; line-height: 1; color: var(--primary); }
+.nd-dropzone-title { font-size: 0.875rem; color: var(--text); }
+.nd-dropzone-hint { font-size: 0.78rem; color: var(--text-muted); }
+
+/* Naming-convention hint: always visible, never in the way. */
+.nd-upload-note {
+  padding: 10px 12px;
+  background: var(--info-bg);
+  border: 1px solid var(--info-border);
+  border-radius: var(--radius);
+  font-size: 0.78rem;
+  color: var(--info-text);
+}
+.nd-upload-note code { font-size: 0.78rem; }
+
+/* One row per PDF; one aggregate row for the whole image set. */
+.nd-upload-row,
+.nd-upload-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  padding: 8px 12px;
+  font-size: 0.85rem;
+}
+.nd-upload-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.nd-upload-row-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+/* Text stand-in for a file-type icon — this app ships no icon font. */
+.nd-upload-kind {
+  flex-shrink: 0;
+  padding: 1px 6px;
+  border-radius: 9999px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+}
+.nd-upload-remove {
+  flex-shrink: 0;
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.85rem;
+  line-height: 1;
+  padding: 2px 4px;
+}
+.nd-upload-remove:hover { color: var(--danger); }
+.nd-upload-status { font-size: 0.78rem; color: var(--text-muted); text-align: right; }
+.nd-upload-detail { font-size: 0.78rem; color: var(--text-muted); margin-top: 6px; }
+
+/* A failure is red; a call never attempted is merely muted — the two must not
+   look alike, since only one of them is about the file itself. */
+.nd-upload-row.is-done .nd-upload-status,
+.nd-upload-card.is-done .nd-upload-status { color: var(--success); }
+.nd-upload-row.is-error,
+.nd-upload-card.is-error {
+  background: var(--danger-bg);
+  border-color: var(--danger-border);
+}
+.nd-upload-row.is-error .nd-upload-status,
+.nd-upload-card.is-error .nd-upload-status { color: var(--danger-text); }
+.nd-upload-row.is-not-attempted { opacity: 0.6; }
+.nd-upload-row.is-uploading .nd-upload-status { color: var(--primary); }
+
+.nd-upload-rejected {
+  list-style: none;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+  font-size: 0.78rem;
+  color: var(--danger-text);
+}
+.nd-upload-rejected li { overflow-wrap: anywhere; }
+
+/* ── Batch submissions list ───────────────────────────────────── */
+/* Bucket filters. Real <button>s (not tabs): they filter an already-fetched
+   array in place, they do not navigate, and aria-pressed says exactly that. */
+.nd-bucket-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+.nd-bucket {
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  line-height: 1.2;
+  cursor: pointer;
+}
+.nd-bucket:hover { color: var(--text); background: var(--hover-bg); }
+.nd-bucket.is-active {
+  background: var(--hover-bg);
+  border-color: currentColor;
+  color: var(--text);
+  font-weight: 600;
+}
+/* "To assign" while it holds something: the only bucket that means a human has
+   work waiting, so it keeps its colour whether or not it is the selected one. */
+.nd-bucket.is-attention {
+  background: var(--danger-bg);
+  border-color: var(--danger-border);
+  color: var(--danger-text);
+  font-weight: 600;
+}
+.nd-bucket.is-attention:hover { background: var(--danger-bg); color: var(--danger-text); }
+.nd-bucket.is-attention.is-active { border-color: currentColor; }
+
+/* Submission status badges — four groups, deliberately NOT in StatusBadge's
+   shared map (that one is the project/variant vocabulary). MATCH_FAILED is the
+   only one that reads as "act on me"; the terminal statuses share one muted
+   green; UPLOADED is in flight and UNASSIGNED is merely parked, so they get
+   different neutrals rather than two shades of the same grey. */
+.badge-sub-failed     { background: var(--danger-bg);  color: var(--danger-text); }
+.badge-sub-unassigned { background: var(--bg);         color: var(--text-muted); }
+.badge-sub-processing { background: var(--info-bg);    color: var(--info-text); }
+.badge-sub-done       { background: var(--success-bg); color: var(--success-text); }
+/* SCANNED: extracted, ready for review — amber like the "In review"
+   pill, since what it waits on is a human reading its results. */
+.badge-sub-review     { background: var(--warning-bg); color: var(--warning-text); }
+
+/* The per-row entry point into manual assignment: it belongs to the red row
+   state, so it is tinted like one. */
+.nd-assign-variant { color: var(--danger-text); border-color: var(--danger-border); }
+
+/* Why matching failed, under a MATCH_FAILED / UNRESOLVABLE badge:
+   red like the failed badge, muted once the submission is closed as
+   unresolvable. Unlike .nd-flag it wraps, since a code read can be long. */
+.nd-reason {
+  display: block;
+  max-width: 260px;
+  margin-top: 3px;
+  font-size: 0.75rem;
+  color: var(--danger-text);
+  white-space: normal;
+}
+.nd-reason.is-closed { color: var(--text-muted); }
+.nd-reason code {
+  font-size: 0.72rem;
+  padding: 0 4px;
+  border-radius: 3px;
+  background: var(--bg);
+}
+
+/* A row's actions stacked, widest label setting the width ("Assign variant"
+   over "Mark unresolvable"). */
+.nd-row-actions {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+}
+
+/* After manual assignments: extraction is still the operator's
+   call, so the modal points to it rather than running it. */
+.nd-assign-hint {
+  padding: 10px 12px;
+  background: var(--info-bg);
+  border: 1px solid var(--info-border);
+  border-radius: var(--radius);
+  font-size: 0.8rem;
+  color: var(--info-text);
+}
+
+/* Bulk selection. The bar sits above the table and only exists while something
+   is ticked; the column is as narrow as a checkbox and holds nothing else. */
+.nd-select-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 14px;
+  margin-bottom: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  font-size: 0.85rem;
+}
+.nd-select-cell { width: 28px; }
+.nd-select-cell input { cursor: pointer; }
+
+/* ── Assign-variant modal ────────────────────────────────────── */
+/* One chip per target submission: the modal states exactly what it is about to
+   act on, since a bulk confirm binds all of them to the same variant at once. */
+.nd-assign-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+.nd-assign-chip {
+  padding: 3px 10px;
+  border-radius: 9999px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+/* Per-item outcome rows. Same shape and colours as the upload area's rows, but
+   their own classes: the two flows only happen to look alike, and restyling an
+   upload should not silently restyle an assignment. */
+.nd-assign-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  font-size: 0.85rem;
+}
+.nd-assign-status { font-size: 0.78rem; color: var(--text-muted); text-align: right; }
+.nd-assign-row.is-done .nd-assign-status { color: var(--success); }
+.nd-assign-row.is-in-progress .nd-assign-status { color: var(--primary); }
+.nd-assign-row.is-error {
+  background: var(--danger-bg);
+  border-color: var(--danger-border);
+}
+.nd-assign-row.is-error .nd-assign-status { color: var(--danger-text); }
+
+/* ── Project batch list ───────────────────────────────────────────────────────
+   The Scanning tab's table of batches. Tokens only, so dark mode needs no
+   overrides. */
+
+/* "Results waiting for a human": amber, work to do — distinct from the red
+   "to assign", which is a submission that cannot proceed at all. */
+.badge-review { background: var(--warning-bg); color: var(--warning-text); }
+/* Readings left unresolved on a closed submission: muted, sentence case
+   — a fact about it, not a status nor work to do. */
+.badge-unresolved {
+  background: var(--bg);
+  color: var(--text-muted);
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 500;
+}
+
+/* The warnings of the "Close submission" confirmation. */
+.nd-close-warnings {
+  list-style: none;
+  margin: 0;
+  padding: 10px 12px;
+  background: var(--warning-bg);
+  border: 1px solid var(--warning-border);
+  border-radius: var(--radius);
+  color: var(--warning-text);
+  font-size: 0.85rem;
+}
+.nd-close-warnings li { padding: 3px 0; }
+
+/* Reviewed column: thin bar plus "n / total". */
+.nd-progress { display: flex; align-items: center; gap: 8px; min-width: 140px; }
+.nd-progress-track {
+  flex: 1;
+  height: 6px;
+  background: var(--bg);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.nd-progress-fill { height: 100%; background: var(--success); }
+.nd-progress-label { font-variant-numeric: tabular-nums; white-space: nowrap; font-size: 0.8rem; }
+
+/* The optional description under a batch name: one line, never grows the row. */
+.nd-batch-desc {
+  display: block;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  max-width: 320px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Numeric columns, header and cells alike, so the figures line up. */
+.nd-table th.nd-num, .nd-table td.nd-num { text-align: right; font-variant-numeric: tabular-nums; }
+
+.nd-status-cell { display: flex; flex-wrap: wrap; gap: 4px; }
+
+/* Neutral one-liner under "Batches" on a CLOSED/ARCHIVED project: why there is
+   no "+ New batch", without the alarm of a warning banner. */
+.nd-gate-line {
+  background: var(--bg);
+  color: var(--text-muted);
+  border-radius: var(--radius);
+  padding: 9px 12px;
+  font-size: 0.85rem;
+  margin-bottom: 16px;
+}
+
+/* ── Batch queue ──────────────────────────────────────────────────────────────
+   The batch detail page as the review queue: header toolbar, amber "To review"
+   pill, row flags, the "In review by" lock and the collapsible
+   upload area. Tokens only, so dark mode
+   needs no overrides. */
+
+/* "To review" while it holds something: results waiting for a human. Mirrors
+   is-attention, in amber rather than red — work to do, not a blocked submission. */
+.nd-bucket.is-review {
+  background: var(--warning-bg);
+  border-color: var(--warning-border);
+  color: var(--warning-text);
+  font-weight: 600;
+}
+.nd-bucket.is-review:hover { background: var(--warning-bg); color: var(--warning-text); }
+.nd-bucket.is-review.is-active { border-color: currentColor; }
+
+/* "Ready to close" while it holds something: open submissions whose
+   readings are all ruled on, only the closing left. Blue: work, but no alarm. */
+.nd-bucket.is-ready {
+  background: var(--info-bg);
+  border-color: var(--info-border);
+  color: var(--info-text);
+  font-weight: 600;
+}
+.nd-bucket.is-ready:hover { background: var(--info-bg); color: var(--info-text); }
+.nd-bucket.is-ready.is-active { border-color: currentColor; }
+
+/* The toolbar row inside the header card: one column per control. */
+.nd-queue-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  align-items: flex-start;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.nd-tool { display: flex; flex-direction: column; gap: 6px; min-width: 260px; }
+.nd-tool-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+.nd-run-result { font-size: 0.8rem; color: var(--text-muted); }
+.nd-run-result.has-errors { color: var(--danger-text); }
+/* Batch export: why a batch cannot be exported yet,
+   under the disabled "Export summary…" / "Export detail…"; the dialog's format
+   choice and file name. */
+.nd-export-blocked { font-size: 0.8rem; color: var(--warning-text); }
+.nd-export-choices { border: 0; margin: 0 0 16px; padding: 0; }
+.nd-export-choices legend { font-size: 0.85rem; font-weight: 500; margin-bottom: 4px; }
+.nd-export-choice { display: flex; align-items: flex-start; gap: 8px; padding: 6px 0; font-size: 0.875rem; cursor: pointer; }
+.nd-export-choice input { margin-top: 3px; }
+.nd-export-choice small { display: block; color: var(--text-muted); font-size: 0.78rem; }
+.nd-export-name { display: flex; align-items: stretch; }
+.form-group .nd-export-name input { flex: 1; min-width: 0; width: auto; border-radius: var(--radius) 0 0 var(--radius); }
+.form-group .nd-export-name input[aria-invalid='true'] { border-color: var(--danger); }
+.nd-export-ext {
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-left: 0;
+  border-radius: 0 var(--radius) var(--radius) 0;
+  background: var(--bg);
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+.nd-field-error { font-size: 0.78rem; color: var(--danger-text); }
+
+.nd-threshold-value { font-size: 0.95rem; font-weight: 600; }
+.nd-threshold-origin { font-size: 0.78rem; color: var(--text-muted); }
+.nd-threshold-input {
+  width: 70px;
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+  color: var(--text);
+  background: var(--surface);
+}
+.nd-threshold-input:focus { outline: 2px solid var(--primary); outline-offset: -1px; }
+
+/* A text-style button: secondary actions that should not compete with the
+   buttons beside them (Edit, Reset, Hide). */
+.nd-link-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--primary);
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+.nd-link-btn:hover:not(:disabled) { text-decoration: underline; }
+.nd-link-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+/* A warning under a cell's value ("⚠ No candidate", "⚠ Missing p. 4"): on its
+   own line, never wrapping, so the row height stays predictable. */
+.nd-flag {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--warning-text);
+  margin-top: 2px;
+  white-space: nowrap;
+}
+
+/* "In review by": an active review lock — blue for a colleague,
+   green when it is the signed-in user's own. One line, so a long name does not
+   double the row height. */
+.nd-lock {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  color: var(--info-text);
+}
+.nd-lock.is-mine { color: var(--success-text); }
+
+.nd-dropzone-recommend { font-size: 0.8rem; color: var(--text); margin-top: 4px; }
+
+/* "+ Add files" collapsed card, and the "Add files / Hide" header above the
+   expanded upload area. */
+.nd-add-files-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.nd-add-files-row .nd-muted { font-size: 0.85rem; }
+
+/* ── Submission review ────────────────────────────────────────────────────────
+   The page one submission is reviewed on: list of flagged readings on the left,
+   the selected one on the right. Tokens only, so dark mode follows for free. */
+
+/* List | focus. One column on narrow screens, the list first. */
+.nd-review-layout {
+  display: grid;
+  grid-template-columns: 340px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .nd-review-layout { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Header facts: Variant, Candidate, Pages, To review. */
+.nd-review-meta {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px 20px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+@media (max-width: 640px) {
+  .nd-review-meta { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.nd-review-meta dt,
+.nd-review-reading dt {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+.nd-review-meta dd { font-size: 0.9rem; margin: 0; }
+
+/* The list card: rows run edge to edge, so no card padding. */
+.nd-review-list { padding: 0; overflow: hidden; }
+.nd-review-list-head {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+.nd-review-group-title {
+  padding: 8px 14px;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+/* A sheet the extraction could not align: one amber line
+   under its group title. */
+.nd-review-group-warning {
+  padding: 6px 14px;
+  font-size: 0.8rem;
+  background: var(--warning-bg);
+  color: var(--warning-text);
+  border-bottom: 1px solid var(--warning-border);
+}
+.nd-review-empty {
+  margin: 14px;
+  padding: 24px;
+  border: 1.5px dashed var(--border);
+  border-radius: var(--radius);
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+/* One reading: a full-width button, so it is keyboard-reachable for free. */
+.nd-review-obj {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 14px;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.nd-review-obj:hover { background: var(--hover-bg); }
+.nd-review-obj:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
+.nd-review-obj.is-selected {
+  background: var(--selected-bg);
+  box-shadow: inset 3px 0 0 var(--primary);
+}
+.nd-review-obj.is-resolved .nd-review-obj-title { color: var(--text-muted); }
+.nd-review-check {
+  width: 18px;
+  flex-shrink: 0;
+  color: var(--success);
+  font-weight: 700;
+}
+.nd-review-obj-body { display: flex; flex-direction: column; min-width: 0; }
+.nd-review-obj-title { font-size: 0.85rem; font-weight: 600; }
+/* One line, ellipsis: a long question must not grow the row. */
+.nd-review-sub {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Reason chips: amber unsure, red broken, blue by design, muted unknown. */
+.nd-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.nd-chip {
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.nd-chip-warning { background: var(--warning-bg); color: var(--warning-text); }
+.nd-chip-danger  { background: var(--danger-bg); color: var(--danger-text); }
+.nd-chip-info    { background: var(--info-bg); color: var(--info-text); }
+.nd-chip-muted   { background: var(--hover-bg); color: var(--text-muted); }
+
+/* Lock / status banner above the header. */
+.nd-review-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  border: 1px solid;
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+}
+.nd-review-banner-warning { background: var(--warning-bg); border-color: var(--warning-border); color: var(--warning-text); }
+.nd-review-banner-danger  { background: var(--danger-bg); border-color: var(--danger-border); color: var(--danger-text); }
+.nd-review-banner-info    { background: var(--info-bg); border-color: var(--info-border); color: var(--info-text); }
+
+/* Focus panel. */
+.nd-review-focus-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.nd-review-focus-title .nd-chips { margin-top: 0; }
+.nd-review-focus-where { font-weight: 400; }
+.nd-review-reading dt { margin-top: 10px; }
+.nd-review-reading dt:first-child { margin-top: 0; }
+.nd-review-reading dd { font-size: 0.9rem; margin: 0; overflow-wrap: anywhere; }
+
+/* ── Scan crop ────────────────────────────────────────────────────────────────
+   The scan around the selected reading, above "Proposed reading". The frame
+   clips a stretched copy of the whole sheet (left/top/width/height set inline,
+   in percent); the box is the object's exact rectangle. Its aspect ratio and
+   max width come inline too, so its height stays capped whatever the shape. */
+.nd-scan {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.nd-scan-frame {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  background: var(--canvas-desk-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.nd-scan-loading { font-size: 0.8rem; }
+.nd-scan-img {
+  position: absolute;
+  max-width: none;   /* the inline width may exceed the frame on purpose */
+  user-select: none;
+}
+.nd-scan-highlight {
+  position: absolute;
+  pointer-events: none;
+  outline: 2px solid var(--primary);
+  border-radius: 2px;
+}
+.nd-scan-toggle { align-self: center; }
+.nd-scan-msg { font-size: 0.85rem; margin: 0 0 14px; }
+
+/* Inline candidate editor in the review header: input, Save and
+   Cancel on one line, wrapping on a narrow header cell; a 422 under it. */
+.nd-candidate-edit { display: flex; flex-direction: column; gap: 4px; }
+.nd-candidate-edit-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.nd-candidate-edit-input {
+  flex: 1 1 120px;
+  min-width: 0;
+  padding: 4px 8px;
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.nd-candidate-edit-input:focus { outline: 2px solid var(--primary); outline-offset: -1px; }
+.nd-candidate-edit-error { font-size: 0.8rem; margin: 0; }
+
+/* ── Review actions ───────────────────────────────────────────────────────────
+   The action area under the proposed reading, the replacement editors, the
+   outcome block of a resolved reading, and the list's outcome icons. Tokens
+   only, so dark mode follows for free. */
+
+.btn-danger-outline {
+  background: transparent;
+  color: var(--danger-text);
+  border: 1px solid var(--danger-border);
+}
+.btn-danger-outline:hover:not(:disabled) { background: var(--danger-bg); }
+
+.nd-review-actions {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.nd-review-actions-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.nd-review-actions > .nd-review-actions-row:first-child { margin-top: 0; }
+.nd-review-actions-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.nd-review-actions-warning { margin: 0 0 8px; }
+.nd-review-note-toggle { display: block; margin-top: 10px; }
+
+/* Shared by the note and the editors' inputs. */
+.nd-review-input {
+  width: 100%;
+  padding: 7px 9px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.875rem;
+}
+.nd-review-input:focus { outline: 2px solid var(--primary); outline-offset: -1px; }
+.nd-review-input-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  letter-spacing: 0.08em;
+}
+.nd-review-note { display: block; margin-top: 10px; resize: vertical; }
+.nd-review-editor-error { font-size: 0.8rem; margin: 8px 0 0; }
+
+/* The current ruling: green confirmed, blue replaced, red flagged. */
+.nd-review-outcome {
+  margin-top: 14px;
+  padding: 10px 12px;
+  border: 1px solid;
+  border-radius: var(--radius);
+  font-size: 0.85rem;
+  overflow-wrap: anywhere;
+}
+.nd-review-outcome-confirmed   { background: var(--success-bg); border-color: var(--success-border); color: var(--success-text); }
+.nd-review-outcome-substituted { background: var(--info-bg);    border-color: var(--info-border);    color: var(--info-text); }
+.nd-review-outcome-flagged     { background: var(--danger-bg);  border-color: var(--danger-border);  color: var(--danger-text); }
+.nd-review-outcome-who { font-size: 0.75rem; opacity: 0.85; }
+.nd-review-outcome-note { margin-top: 6px; font-style: italic; }
+
+/* QUESTION editor: one row per option, the ones the extractor read outlined. */
+.nd-replace-options { display: flex; flex-direction: column; gap: 6px; margin: 6px 0 4px; }
+.nd-replace-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+.nd-replace-option.is-read { border-color: var(--primary); background: var(--selected-bg); }
+.nd-replace-read-tag { margin-left: auto; font-size: 0.7rem; color: var(--primary); }
+
+/* MATRIX editor: a checkbox grid, the cells the extractor read shaded. */
+.nd-replace-grid-wrap { overflow-x: auto; margin: 6px 0 4px; }
+.nd-replace-grid { border-collapse: collapse; font-size: 0.8rem; }
+.nd-replace-grid th,
+.nd-replace-grid td {
+  border: 1px solid var(--border);
+  padding: 4px 8px;
+  text-align: center;
+}
+.nd-replace-grid th { background: var(--bg); font-weight: 600; color: var(--text-muted); }
+.nd-replace-grid td.is-read { background: var(--selected-bg); }
+
+.nd-replace-hint { font-size: 0.78rem; color: var(--text-muted); margin: 6px 0 0; }
+.nd-replace-hint-warn { color: var(--warning-text); }
+
+/* List: the done count and "Accept all remaining" share the head's right side;
+   a flagged reading's icon is red. */
+.nd-review-list-head { align-items: center; gap: 8px; }
+.nd-review-list-head-side { display: flex; align-items: center; gap: 10px; }
+.nd-review-check.is-flagged { color: var(--danger-text); }
+
+/* Keyboard hints: a key badge inside the action buttons and one
+   keys row under them. Hidden on narrow (touch) screens, where there is no
+   keyboard to press them on. */
+.nd-kbd {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 0 5px;
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 0.7rem;
+  line-height: 1.4;
+}
+.btn-primary .nd-kbd { background: transparent; border-color: currentColor; color: inherit; opacity: 0.8; }
+.nd-keys-row { margin: 12px 0 0; font-size: 0.75rem; color: var(--text-muted); }
+.nd-keys-row .nd-kbd { margin-left: 0; }
+.nd-review-actions:focus { outline: none; }
+@media (max-width: 640px) {
+  .nd-kbd,
+  .nd-keys-row { display: none; }
+}
+.nd-replace-hint.nd-keys-row { margin-top: 4px; }

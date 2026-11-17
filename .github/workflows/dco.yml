@@ -1,0 +1,60 @@
+# SPDX-FileCopyrightText: 2026 Alberto Borsetta
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+# Developer Certificate of Origin: every commit of a pull request, except merge
+# commits, needs a Signed-off-by line with the email of the commit's author
+# (see CONTRIBUTING.md, "Commits and pull requests").
+
+name: DCO
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dco:
+    name: dco
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Check Signed-off-by
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+        run: |
+          set -euo pipefail
+          # A plain assignment, so that set -e stops the job if git fails.
+          commits=$(git rev-list --no-merges "$BASE_SHA..$HEAD_SHA")
+          checked=0
+          missing=""
+          for sha in $commits; do
+            checked=$((checked + 1))
+            email=$(git log -1 --format='%ae' "$sha")
+            if ! git log -1 --format='%(trailers:key=Signed-off-by,valueonly)' "$sha" \
+                | grep -qiF "<$email>"; then
+              missing+="$(git log -1 --format='  %h %s (author: %an <%ae>)' "$sha")"$'\n'
+            fi
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::Commits without a Signed-off-by line matching their author's email"
+            echo "These commits have no Signed-off-by line with their author's email:"
+            printf '%s' "$missing"
+            echo
+            echo "Sign them off and update the pull request:"
+            echo "  git rebase --signoff $BASE_REF"
+            echo "  git push --force-with-lease"
+            echo "See CONTRIBUTING.md, section \"Commits and pull requests\"."
+            exit 1
+          fi
+          echo "All $checked commits are signed off."

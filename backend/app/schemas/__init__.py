@@ -1,0 +1,186 @@
+# SPDX-FileCopyrightText: 2026 Alberto Borsetta
+# SPDX-License-Identifier: AGPL-3.0-or-later
+from app.schemas.auth import LoginRequest, TokenResponse
+from app.schemas.user import UserCreate, UserRead, UserUpdate
+from app.schemas.group import (
+    GroupCreate,
+    GroupMembershipCreate,
+    GroupMembershipRead,
+    GroupMembershipUpdate,
+    GroupRead,
+    GroupUpdate,
+)
+from app.schemas.audit_log import AuditLogRead
+
+from app.schemas.form_project import (
+    FormProjectCreate,
+    FormProjectListItem,
+    FormProjectRead,
+    FormProjectUpdate,
+)
+from app.schemas.form_variant import (
+    FormVariantCreate,
+    FormVariantDetail,
+    FormVariantListItem,
+    FormVariantPageCreate,
+    FormVariantPageRead,
+    FormVariantRead,
+    FormVariantUpdate,
+)
+from app.schemas.page_object import (
+    CodeObjectConfigCreate,
+    CodeObjectConfigRead,
+    CodeObjectConfigUpdate,
+    CodePageObjectCreate,
+    CodePageObjectRead,
+    FreeTextAreaConfigCreate,
+    FreeTextAreaConfigRead,
+    FreeTextAreaConfigUpdate,
+    FreeTextAreaPageObjectCreate,
+    FreeTextAreaPageObjectRead,
+    PageObjectBaseRead,
+    PageObjectListItem,
+    PageObjectUpdate,
+    TextObjectConfigCreate,
+    TextObjectConfigRead,
+    TextObjectConfigUpdate,
+    TextPageObjectCreate,
+    TextPageObjectRead,
+)
+from app.schemas.question_object import (
+    QuestionObjectConfigCreate,
+    QuestionObjectConfigRead,
+    QuestionObjectConfigUpdate,
+    QuestionOptionCreate,
+    QuestionOptionRead,
+    QuestionOptionUpdate,
+    QuestionPageObjectCreate,
+    QuestionPageObjectRead,
+)
+from app.schemas.matrix_object import (
+    MatrixCellDefCreate,
+    MatrixCellDefRead,
+    MatrixCellDefUpdate,
+    MatrixColDefCreate,
+    MatrixColDefRead,
+    MatrixColDefUpdate,
+    MatrixObjectConfigCreate,
+    MatrixObjectConfigRead,
+    MatrixObjectConfigUpdate,
+    MatrixPageObjectCreate,
+    MatrixPageObjectRead,
+    MatrixRowDefCreate,
+    MatrixRowDefRead,
+    MatrixRowDefUpdate,
+)
+from app.schemas.submission import (
+    ConfidenceThresholdUpdate,
+    SubmissionBatchCreate,
+    SubmissionBatchRead,
+    SubmissionCreate,
+    SubmissionObjectResultRead,
+    SubmissionPageCreate,
+    SubmissionPageRead,
+    SubmissionRead,
+    SubmissionReviewCreate,
+    SubmissionReviewRead,
+)
+from app.schemas.submission_result import (
+    MatrixCellDetection,
+    MatrixDetectionPayload,
+    MatrixRowDetection,
+    OptionDetection,
+    QuestionDetectionPayload,
+)
+
+__all__ = [
+    "LoginRequest",
+    "TokenResponse",
+    "UserCreate",
+    "UserRead",
+    "UserUpdate",
+    "GroupCreate",
+    "GroupRead",
+    "GroupUpdate",
+    "GroupMembershipCreate",
+    "GroupMembershipRead",
+    "GroupMembershipUpdate",
+    "AuditLogRead",
+    # FormProject
+    "FormProjectCreate",
+    "FormProjectRead",
+    "FormProjectUpdate",
+    "FormProjectListItem",
+    # FormVariant / pages
+    "FormVariantCreate",
+    "FormVariantUpdate",
+    "FormVariantRead",
+    "FormVariantListItem",
+    "FormVariantDetail",
+    "FormVariantPageCreate",
+    "FormVariantPageRead",
+    # PageObject base
+    "PageObjectBaseRead",
+    "PageObjectListItem",
+    "PageObjectUpdate",
+    # TEXT
+    "TextObjectConfigCreate",
+    "TextObjectConfigUpdate",
+    "TextObjectConfigRead",
+    "TextPageObjectCreate",
+    "TextPageObjectRead",
+    # CODE
+    "CodeObjectConfigCreate",
+    "CodeObjectConfigUpdate",
+    "CodeObjectConfigRead",
+    "CodePageObjectCreate",
+    "CodePageObjectRead",
+    # FREE_TEXT_AREA
+    "FreeTextAreaConfigCreate",
+    "FreeTextAreaConfigUpdate",
+    "FreeTextAreaConfigRead",
+    "FreeTextAreaPageObjectCreate",
+    "FreeTextAreaPageObjectRead",
+    # QUESTION
+    "QuestionObjectConfigCreate",
+    "QuestionObjectConfigUpdate",
+    "QuestionObjectConfigRead",
+    "QuestionOptionCreate",
+    "QuestionOptionUpdate",
+    "QuestionOptionRead",
+    "QuestionPageObjectCreate",
+    "QuestionPageObjectRead",
+    # MATRIX
+    "MatrixObjectConfigCreate",
+    "MatrixObjectConfigUpdate",
+    "MatrixObjectConfigRead",
+    "MatrixRowDefCreate",
+    "MatrixRowDefUpdate",
+    "MatrixRowDefRead",
+    "MatrixColDefCreate",
+    "MatrixColDefUpdate",
+    "MatrixColDefRead",
+    "MatrixCellDefCreate",
+    "MatrixCellDefUpdate",
+    "MatrixCellDefRead",
+    "MatrixPageObjectCreate",
+    "MatrixPageObjectRead",
+    # Submission foundation
+    "SubmissionBatchCreate",
+    "SubmissionBatchRead",
+    # Confidence threshold
+    "ConfidenceThresholdUpdate",
+    "SubmissionCreate",
+    "SubmissionRead",
+    "SubmissionPageCreate",
+    "SubmissionPageRead",
+    "SubmissionObjectResultRead",
+    "SubmissionReviewCreate",
+    "SubmissionReviewRead",
+    # Extraction Confidence/Validity contract
+    "OptionDetection",
+    "QuestionDetectionPayload",
+    "MatrixCellDetection",
+    "MatrixRowDetection",
+    "MatrixDetectionPayload",
+]

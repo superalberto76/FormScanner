@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FormScanner</title>
+    <!-- Anti-flash theme boot: set data-theme BEFORE first paint so
+         there is no wrong-theme flash on load. Runs synchronously, before the
+         module bundle. MUST mirror src/theme/theme.ts (key 'fs_theme' + resolve);
+         it cannot import that module because it has to run this early. -->
+    <script>
+      (function () {
+        try {
+          var mode = localStorage.getItem('fs_theme') || 'SYSTEM'
+          var dark =
+            mode === 'DARK' ||
+            (mode === 'SYSTEM' &&
+              window.matchMedia &&
+              window.matchMedia('(prefers-color-scheme: dark)').matches)
+          document.documentElement.dataset.theme = dark ? 'dark' : 'light'
+        } catch (e) {
+          /* storage/matchMedia unavailable — leave the default light theme */
+        }
+      })()
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

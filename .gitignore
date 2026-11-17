@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Node
+node_modules/
+dist/
+# e2e (Playwright): kit, storage, build, results and report
+frontend/e2e/.work/
+
+# Env
+.env
+
+# Data of a docker compose installation (database and files)
+/data/
+
+# IDE
+.vscode/
+.idea/
+
+# Claude Code: a contributor's personal instructions and settings
+CLAUDE.local.md
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
+
+# OS
+.DS_Store
+Thumbs.db
+frontend/.env.local

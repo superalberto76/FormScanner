@@ -1,0 +1,426 @@
+/* SPDX-FileCopyrightText: 2026 Alberto Borsetta */
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Authoring workspace styles. Complements the nd-* classes in index.css
+   (which hold the base workspace layout); this file holds the editor-panel
+   styles of the side-panel editing. */
+
+/* IMAGE preview box (create form / editor / read-only detail) */
+.nd-image-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60px;
+  padding: 8px;
+  background: var(--row-hover-bg);
+  border: 1px dashed var(--border, #cbd5e1);
+  border-radius: var(--radius);
+}
+.nd-image-preview img { display: block; }
+
+/* Inline, per-form error surfaced on a failed save (422/409/etc.) */
+.nd-edit-error {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--danger);
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-border);
+  border-radius: var(--radius);
+  padding: 6px 8px;
+}
+
+/* Destructive button (delete) */
+.nd-danger-btn { color: var(--danger); }
+.nd-danger-btn:hover { border-color: var(--danger); }
+
+/* Question option edit card */
+.nd-option-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.nd-option-edit.is-correct {
+  border-color: var(--success);
+  background: var(--success-bg);
+}
+
+/* ── Single-Save editor footer ─────────────────────────────────────────────── */
+/* Save / Reset row pinned under the sections, with the unsaved-changes hint. */
+.nd-edit-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+/* "Unsaved changes" hint — amber dot + text, mirrors the draft badge palette. */
+.nd-unsaved-badge {
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--warning-text);
+  margin-left: auto;
+}
+/* Partial-save warning banner shown when a Save stops mid-sequence. */
+.nd-edit-banner {
+  font-size: 0.78rem;
+  color: var(--warning-text);
+  background: var(--warning-bg);
+  border: 1px solid var(--warning-border);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  margin-bottom: 12px;
+}
+
+/* Matrix summary chip in the editor */
+.nd-matrix-summary {
+  font-size: 0.8rem;
+  padding: 6px 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+/* Make the selected overlay stand out more clearly during editing */
+.nd-overlay.is-selected {
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.45);
+}
+.nd-overlay.is-selected .nd-overlay-chip {
+  font-weight: 600;
+}
+
+/* ── Snapping ──────────────────────────────────────────────────────────────── */
+/* "Snap" dropdown: a toggle button + an absolutely-positioned checkbox popover. */
+.nd-snap-menu { position: relative; display: inline-flex; }
+/* The trigger wears .nd-toolbar-select to match "Add object"/"Sort
+   objects" — including the shared SVG chevron drawn as a background. These rules
+   add only what a <button> needs to mirror a <select>: inline-flex layout for the
+   label/count, and a native-select box height. */
+.nd-snap-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  line-height: normal;
+}
+/* Active snap (one or both options on): a subtle accent — primary border plus an
+   accent-coloured count — so it reads as "on" without becoming a primary button. */
+.nd-snap-trigger.is-active { border-color: var(--primary); }
+.nd-snap-count { font-weight: 600; color: var(--primary); }
+.nd-snap-popover {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: var(--z-toolbar-popover);
+  min-width: 160px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+.nd-snap-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  font-size: 0.8rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.nd-snap-item:hover { background: var(--bg); }
+.nd-snap-item input { cursor: pointer; margin: 0; }
+
+/* 5px grid behind the objects. Two 1px gradient lines per cell; the cell size is
+   set inline as a percentage of the surface so it scales with the paper. Never
+   intercepts pointer events. */
+.nd-grid-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-grid);
+  pointer-events: none;
+  background-image:
+    linear-gradient(to right, rgba(37, 99, 235, 0.10) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(37, 99, 235, 0.10) 1px, transparent 1px);
+}
+
+/* Alignment marks of the export, part of the faithful preview.
+   Above the unselected objects, as in the PDF (drawn after them); below the
+   selected overlay so its handles stay on top. Never intercept pointer events. */
+.nd-alignment-mark {
+  position: absolute;
+  z-index: var(--z-alignment-marks);
+  pointer-events: none;
+}
+.nd-alignment-mark-hole {
+  position: absolute;
+}
+
+/* Thin alignment guide shown while object-snap latches an edge/centre. Drawn
+   above the handles (z-index 3) so it reads clearly during the drag. */
+.nd-snap-guide {
+  position: absolute;
+  z-index: var(--z-snap-guide);
+  pointer-events: none;
+  background: var(--primary);
+  opacity: 0.75;
+}
+
+/* ── Page rail: drag-reorder + per-page removal ─────────────────────────────── */
+/* The page item (base border/active styling lives in index.css) becomes a flex
+   row hosting a drag handle, the page label (the click target) and a trash button.
+   Scoped to `.nd-pages-rail` so this padding reset reliably wins over the
+   index.css `.nd-page-item` rule regardless of stylesheet order. */
+.nd-pages-rail .nd-page-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;            /* padding moves onto the inner label so the row reads as one control */
+  position: relative;    /* anchor for the drop-insertion line */
+}
+.nd-page-label {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  padding: 8px 4px 8px 10px;
+  background: transparent;
+  border: none;
+  color: inherit;        /* inherits .is-active colour/weight from the row */
+  font: inherit;
+  cursor: pointer;
+}
+.nd-page-drag-handle {
+  padding-left: 8px;
+  color: var(--text-muted);
+  cursor: grab;
+  user-select: none;
+  line-height: 1;
+}
+.nd-page-item.is-dragging { opacity: 0.45; }
+.nd-page-trash {
+  flex-shrink: 0;
+  margin-right: 6px;
+  padding: 2px 6px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.85rem;
+  line-height: 1;
+}
+.nd-page-trash:hover:not(:disabled) { color: var(--danger); background: var(--danger-bg); }
+.nd-page-trash:disabled { opacity: 0.35; cursor: not-allowed; }
+/* Duplicate-page button — same affordance as the trash, sits just before it; a
+   neutral (primary) hover since duplication is non-destructive. */
+.nd-page-duplicate {
+  flex-shrink: 0;
+  padding: 2px 6px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.85rem;
+  line-height: 1;
+}
+.nd-page-duplicate:hover:not(:disabled) { color: var(--primary); background: var(--hover-bg); }
+.nd-page-duplicate:disabled { opacity: 0.35; cursor: not-allowed; }
+/* Drop-insertion line drawn in the rail gap between items during a reorder drag. */
+.nd-page-item.is-drop-before::before,
+.nd-page-item.is-drop-after::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--primary);
+  border-radius: 2px;
+}
+.nd-page-item.is-drop-before::before { top: -4px; }
+.nd-page-item.is-drop-after::after { bottom: -4px; }
+/* "Removal disabled" note shown when only one page remains. */
+.nd-page-rail-note {
+  margin: 2px 0 0;
+  font-size: 0.7rem;
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+/* Linked-objects ("show on all pages") chip inside the removal confirm dialog. */
+.nd-removal-chip {
+  display: inline-block;
+  font-size: 0.78rem;
+  padding: 4px 8px;
+  border-radius: var(--radius);
+  background: var(--info-bg);
+  border: 1px solid var(--info-border);
+  color: var(--info-text);
+}
+
+/* ── Faithful object preview ───────────────────────────────────────────────────
+   The preview layer mirrors the PDF export's layout (fidelity, not pixel parity).
+   All COORDINATES are computed in TSX as `<exportLayout constant> * pxScale` and
+   applied inline; all COLOURS come from exportLayout.COLORS (also inline). These
+   rules carry only structure (positioning, clipping, font-stack, wrapping) so no
+   layout number or colour is duplicated here. */
+
+/* The single absolute layer beneath the chip/handles. It clips its own overflow
+   (the overlay must NOT — that would clip the resize handles) and is pointer
+   transparent so it never intercepts a drag/select. Default font = Helvetica
+   stack, matching the export's default (family=None → helv); TEXT overrides it. */
+.nd-preview {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  border-radius: inherit;
+  font-family: Arial, "Liberation Sans", sans-serif;
+  line-height: 1.15;
+}
+
+/* A positioned text run (header / option / label / placeholder / code). Wraps and
+   clips with NO ellipsis — the export truncates, so the canvas does too. */
+.nd-preview-line {
+  position: absolute;
+  box-sizing: border-box;
+  overflow: hidden;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.1;
+}
+.nd-preview-center { text-align: center; }
+.nd-preview-pre { white-space: pre-wrap; } /* honour the CODE "[type]\nvalue" newline */
+
+/* TEXT: one autofit box filling the object; wraps + clips, never ellipsised. The
+   font-size is driven by useAutofitFontSize (shrink-to-fit like the export). */
+.nd-preview-text {
+  box-sizing: border-box;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.15;
+}
+
+/* Answer circle: 2*R*pxScale square, round, hollow by default. Border
+   colour + the filled (solid) background are set inline from exportLayout.COLORS. */
+.nd-preview-circle {
+  position: absolute;
+  box-sizing: border-box;
+  border: 1px solid;
+  border-radius: 50%;
+}
+
+/* MATRIX cell box (LIGHT), FREE_TEXT_AREA box (BLACK), CODE placeholder box (GRAY).
+   Border width/style only — the colour is inline from exportLayout.COLORS. */
+.nd-preview-cell,
+.nd-preview-box,
+.nd-preview-codebox {
+  position: absolute;
+  box-sizing: border-box;
+  border: 1px solid;
+}
+
+/* IMAGE: the uploaded picture fills the box; object-fit (contain/cover) is inline. */
+.nd-preview-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+}
+
+/* IMAGE placeholder (no file): mountain+sun glyph + label, both GRAY (set inline). */
+.nd-preview-imgph {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+.nd-preview-glyph {
+  width: 36px;
+  height: 36px;
+  max-width: 55%;
+  max-height: 55%;
+}
+.nd-preview-imgph-label {
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+/* ── STUDENT / SOLUTION preview toggle ─────────────────────────────────────────
+   Always visible (DRAFT AND read-only), above the viewer in the centre column. */
+.nd-preview-mode {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.nd-preview-mode-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+.nd-preview-mode-seg {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.nd-preview-mode-btn {
+  padding: 4px 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  border: none;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+.nd-preview-mode-btn + .nd-preview-mode-btn { border-left: 1px solid var(--border); }
+.nd-preview-mode-btn:hover:not(.is-active) { background: var(--bg); }
+.nd-preview-mode-btn.is-active {
+  background: var(--primary);
+  color: #fff;
+}
+/* ── Reserved bands ──────────────────────────────────────────────────────────
+   The four 15 mm bands along the edges, hatched, plus a dashed line on the edge
+   of the usable area. Under every object and the marks (same level as the grid,
+   drawn first), never intercept pointer events. The paper stays white in dark
+   mode, so these colours are not themed. */
+.nd-reserved-band {
+  position: absolute;
+  z-index: var(--z-grid);
+  pointer-events: none;
+  background: repeating-linear-gradient(45deg, rgba(100, 116, 139, 0.13) 0 3px, transparent 3px 8px);
+}
+.nd-usable-area {
+  position: absolute;
+  box-sizing: border-box;
+  z-index: var(--z-grid);
+  pointer-events: none;
+  border: 1px dashed rgba(100, 116, 139, 0.55);
+}
+/* Object inside a band (draft only): red dashed border, light red fill and a red
+   "!" in the bottom-right corner; overrides the type colour, keeps the chip. */
+.nd-overlay.is-in-band {
+  border: 2px dashed var(--danger) !important;
+  background-color: rgba(220, 38, 38, 0.06) !important;
+}
+.nd-overlay.is-in-band.is-selected { box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.35); }
+.nd-overlay-band-warning {
+  position: absolute; right: 2px; bottom: 2px; width: 14px; height: 14px; border-radius: 50%;
+  background: var(--danger); color: #fff; font-size: 10px; font-weight: 700; line-height: 14px;
+  text-align: center; pointer-events: none;
+}
+.nd-object-band { color: var(--danger); font-size: 0.75rem; font-weight: 700; }
+/* Edge of the usable area the dragged object is stopped on. */
+.nd-band-guide { background: #ef4444; opacity: 1; }
+.nd-overlay.is-in-band .nd-handle { border-color: var(--danger) !important; }

@@ -1,0 +1,100 @@
+# SPDX-FileCopyrightText: 2026 Alberto Borsetta
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+# Tests of every pull request and of every push to main.
+# The backend suites run inside the image built from backend/Dockerfile, so
+# they use the same Python, Tesseract and ZBar as a deployed backend.
+
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  backend:
+    name: ${{ matrix.suite }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - suite: backend
+            pytest: pytest tests/ -rs
+          - suite: synthetic
+            pytest: pytest -m synthetic tests/synthetic -rs
+          - suite: golden
+            pytest: pytest -m golden tests/golden -rs
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          # A throwaway database that lives only as long as the job: not a secret.
+          POSTGRES_USER: formscanner
+          POSTGRES_PASSWORD: formscanner
+          POSTGRES_DB: formscanner_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U formscanner -d formscanner_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Build the backend image
+        uses: docker/build-push-action@v7
+        with:
+          context: backend
+          load: true
+          tags: formscanner-backend:ci
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
+
+      # Both variables are set: without TEST_DATABASE_URL the database tests
+      # would be skipped, and the job would pass without running them.
+      # alembic fails if the database does not answer.
+      - name: Run the tests
+        env:
+          PYTEST_COMMAND: ${{ matrix.pytest }}
+        run: |
+          docker run --rm --network host \
+            -e DATABASE_URL=postgresql+psycopg://formscanner:formscanner@localhost:5432/formscanner_test \
+            -e TEST_DATABASE_URL=postgresql+psycopg://formscanner:formscanner@localhost:5432/formscanner_test \
+            formscanner-backend:ci \
+            sh -c "alembic upgrade head && $PYTEST_COMMAND"
+
+  frontend:
+    name: frontend
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - run: npm ci
+      - run: npm test
+      - run: npm run typecheck
+      - run: npm run typecheck:test
+      - run: npm run build
